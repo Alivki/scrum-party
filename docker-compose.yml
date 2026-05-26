@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: scrum-party-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scrum_party
+      POSTGRES_PASSWORD: scrum_party
+      POSTGRES_DB: scrum_party
+    ports:
+      - "5432:5432"
+    volumes:
+      - scrum-party-db:/var/lib/postgresql/data
+
+volumes:
+  scrum-party-db:
