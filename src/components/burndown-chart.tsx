@@ -22,10 +22,18 @@ const config = {
 interface Props {
   series: BurndownPoint[];
   totalPoints: number;
+  partyStart?: number;
+  partyEnd?: number;
   height?: number | string;
 }
 
-export function BurndownChart({ series, totalPoints, height = 280 }: Props) {
+export function BurndownChart({
+  series,
+  totalPoints,
+  partyStart,
+  partyEnd,
+  height = 280,
+}: Props) {
   if (!series.length) {
     return (
       <div
@@ -39,11 +47,18 @@ export function BurndownChart({ series, totalPoints, height = 280 }: Props) {
 
   const yMax = Math.max(totalPoints, 1);
 
+  // Convert each point's ISO date to a numeric timestamp so we can use a
+  // continuous time scale and pin the X axis to the full party window.
+  const data = series.map((p) => ({ ...p, t: new Date(p.date).getTime() }));
+
+  const xDomain: [number, number] | undefined =
+    partyStart != null && partyEnd != null ? [partyStart, partyEnd] : undefined;
+
   return (
     <div style={{ height }}>
       <ChartContainer config={config}>
         <ComposedChart
-          data={series}
+          data={data}
           margin={{ top: 12, right: 20, left: 4, bottom: 4 }}
         >
           <defs>
@@ -58,7 +73,11 @@ export function BurndownChart({ series, totalPoints, height = 280 }: Props) {
             vertical={false}
           />
           <XAxis
-            dataKey="date"
+            dataKey="t"
+            type="number"
+            scale="time"
+            domain={xDomain ?? ["dataMin", "dataMax"]}
+            allowDataOverflow
             stroke="var(--ink-2)"
             strokeWidth={1}
             tickLine={false}
@@ -93,7 +112,7 @@ export function BurndownChart({ series, totalPoints, height = 280 }: Props) {
             content={
               <ChartTooltipContent
                 labelFormatter={(v) =>
-                  new Date(v as string).toLocaleString("nb-NO", {
+                  new Date(v as number).toLocaleString("nb-NO", {
                     hour: "2-digit",
                     minute: "2-digit",
                     day: "2-digit",
