@@ -488,13 +488,11 @@ function partyTimeline(referenceMs: number) {
     .filter((c) => c.at < partyStart)
     .reduce((s, c) => s + c.points, 0);
 
-  const sampleSet = new Set<number>([partyStart]);
+    const sampleSet = new Set<number>([partyStart, partyEnd]);
   for (const c of closeEvents) {
     if (c.at >= partyStart && c.at <= partyEnd) sampleSet.add(c.at);
   }
-  for (const b of buckets) {
-    if (b <= now) sampleSet.add(b);
-  }
+  for (const b of buckets) sampleSet.add(b);
   if (now >= partyStart && now <= partyEnd) sampleSet.add(now);
 
   const samples = Array.from(sampleSet).sort((a, b) => a - b);
