@@ -458,11 +458,11 @@ function partyTimeline(referenceMs: number) {
   if (rows.length === 0)
     return { series: [] as BurndownPoint[], totalPoints: 0 };
   const totalPoints = rows.reduce((s, i) => s + i.storyPoints, 0);
-  const earliestCreatedMs = rows.reduce(
-    (min, r) => Math.min(min, r.createdAt.getTime()),
-    rows[0]!.createdAt.getTime(),
-  );
-  const { buckets, now } = partyTimeline(earliestCreatedMs);
+
+  // Anchor the party window to TODAY (Oslo), not to the earliest issue.
+  // Otherwise old test issues drag the chart window into a past day and the
+  // line never reflects current closes.
+  const { buckets, now } = partyTimeline(Date.now());
   const partyStart = buckets[0]!;
   const partyEnd = buckets[buckets.length - 1]!;
   const partySpan = Math.max(1, partyEnd - partyStart);
@@ -481,6 +481,12 @@ function partyTimeline(referenceMs: number) {
     }))
     .sort((a, b) => a.at - b.at);
 
+  // Close events from before the party window still count as "burned" — they
+  // shouldn't be plotted before partyStart, but their points are gone.
+  const burnedBeforeStart = closeEvents
+    .filter((c) => c.at < partyStart)
+    .reduce((s, c) => s + c.points, 0);
+
   const sampleSet = new Set<number>([partyStart]);
   for (const c of closeEvents) {
     if (c.at >= partyStart && c.at <= partyEnd) sampleSet.add(c.at);
@@ -493,10 +499,13 @@ function partyTimeline(referenceMs: number) {
   const samples = Array.from(sampleSet).sort((a, b) => a - b);
 
   const series: BurndownPoint[] = samples.map((t) => {
-    const burned = closeEvents
-      .filter((c) => c.at <= t)
+    const burnedDuring = closeEvents
+      .filter((c) => c.at >= partyStart && c.at <= t)
       .reduce((s, c) => s + c.points, 0);
-    const remaining = Math.max(0, totalPoints - burned);
+    const remaining = Math.max(
+      0,
+      totalPoints - burnedBeforeStart - burnedDuring,
+    );
     return {
       date: new Date(t).toISOString(),
       remaining,
@@ -506,8 +515,6 @@ function partyTimeline(referenceMs: number) {
   });
   return { series, totalPoints };
 }
-
-
 
 export const getBurndown = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
