@@ -24,7 +24,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           name: "description",
           content: "Dataingeniør · scrumfest iterasjon 1.",
         },
-        { name: "theme-color", content: "#efe9dd" },
+        { name: "theme-color", content: "#f8f7f4" },
       ],
       links: [{ rel: "stylesheet", href: appCss }],
     }),

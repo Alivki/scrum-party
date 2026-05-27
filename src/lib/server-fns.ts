@@ -132,6 +132,31 @@ export const updateAvatar = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const updateProfile = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        name: z.string().trim().min(1).max(40),
+        avatar: z.string().nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const u = await requireUser();
+    const update: Partial<typeof userTable.$inferInsert> = {
+      name: data.name,
+      updatedAt: new Date(),
+    };
+    if (data.avatar !== undefined) update.avatar = data.avatar;
+    await db.update(userTable).set(update).where(eq(userTable.id, u.id));
+    const rows = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.id, u.id))
+      .limit(1);
+    return rows[0] ? rowToUser(rows[0]) : null;
+  });
+
 export const listUsers = createServerFn({ method: "GET" }).handler(async () => {
   const rows = await db
     .select()

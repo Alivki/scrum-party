@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Pencil } from "lucide-react";
 import * as React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Stamp } from "~/components/ui/stamp";
@@ -14,6 +15,8 @@ interface ScoreboardMastheadProps {
   promille: number;
   /** If set, wraps the identity block in a Link to this URL. */
   linkTo?: string;
+  /** If set, renders a small edit button on the masthead. */
+  onEdit?: () => void;
 }
 
 export function ScoreboardMasthead({
@@ -24,6 +27,7 @@ export function ScoreboardMasthead({
   units,
   promille,
   linkTo,
+  onEdit,
 }: ScoreboardMastheadProps) {
   const pct =
     pointsTotal > 0 ? Math.min(100, (pointsClosed / pointsTotal) * 100) : 0;
@@ -65,7 +69,20 @@ export function ScoreboardMasthead({
   );
 
   return (
-    <header className="border-b border-ink-3">
+    <header className="border-b border-ink-3 relative">
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label="Rediger profil"
+          className="absolute top-2 right-3 md:top-3 md:right-4 z-10 inline-flex items-center gap-1.5 btn btn-quiet !py-1 !px-2"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+          <span className="caption-3 normal-case tracking-normal">
+            rediger
+          </span>
+        </button>
+      )}
       <div className="px-5 md:px-10 py-5 grid gap-5 md:gap-6 grid-cols-1 lg:grid-cols-[1fr_auto] items-center">
         {linkTo ? (
           <Link
