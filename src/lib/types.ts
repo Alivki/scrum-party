@@ -87,6 +87,14 @@ export interface BurndownPoint {
   isFuture: boolean;
 }
 
+export interface BurndownData {
+  series: BurndownPoint[];
+  totalPoints: number;
+  partyStart: number;
+  partyEnd: number;
+}
+
+
 export interface LeaderboardEntry {
   user: User;
   pointsClosed: number;
