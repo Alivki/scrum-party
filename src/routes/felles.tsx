@@ -123,11 +123,14 @@ function FellesPage() {
               </span>
             </div>
             <div className="flex-1 min-h-0 px-2 pb-2">
-              <BurndownChart
-                series={burndown.data?.series ?? []}
-                totalPoints={burndown.data?.totalPoints ?? 0}
-                height="100%"
-              />
+           <BurndownChart
+  series={burndown.data?.series ?? []}
+  totalPoints={burndown.data?.totalPoints ?? 0}
+  partyStart={burndown.data?.partyStart}
+  partyEnd={burndown.data?.partyEnd}
+  height="100%"
+/>
+
             </div>
           </section>
           <aside className="min-h-0 flex flex-col">
