@@ -455,64 +455,58 @@ function partyTimeline(referenceMs: number) {
 }
 
  function seriesFromIssues(rows: (typeof issueTable.$inferSelect)[]) {
-   if (rows.length === 0)
-     return { series: [] as BurndownPoint[], totalPoints: 0 };
-   const totalPoints = rows.reduce((s, i) => s + i.storyPoints, 0);
-   const earliestCreatedMs = rows.reduce(
-     (min, r) => Math.min(min, r.createdAt.getTime()),
-     rows[0]!.createdAt.getTime(),
-   );
-   const { buckets, now } = partyTimeline(earliestCreatedMs);
-+  const partyStart = buckets[0]!;
-+  const partyEnd = buckets[buckets.length - 1]!;
-+  const partySpan = Math.max(1, partyEnd - partyStart);
-+
-+  const idealAt = (t: number) => {
-+    const clamped = Math.min(Math.max(t, partyStart), partyEnd);
-+    const frac = (clamped - partyStart) / partySpan;
-+    return Math.round(totalPoints * (1 - frac) * 10) / 10;
-+  };
- 
--  const closedAt = rows
-+  const closeEvents = rows
-     .filter((i) => i.status === "done" && i.completedAt)
-     .map((i) => ({
-       at: i.completedAt!.getTime(),
-       points: i.storyPoints,
--    }));
-+    }))
-+    .sort((a, b) => a.at - b.at);
-+
-+  const sampleSet = new Set<number>([partyStart]);
-+  for (const c of closeEvents) {
-+    if (c.at >= partyStart && c.at <= partyEnd) sampleSet.add(c.at);
-+  }
-+  for (const b of buckets) {
-+    if (b <= now) sampleSet.add(b);
-+  }
-+  if (now >= partyStart && now <= partyEnd) sampleSet.add(now);
-+
-+  const samples = Array.from(sampleSet).sort((a, b) => a - b);
- 
--  const series: BurndownPoint[] = buckets.map((t, idx) => {
--    const burned = closedAt
-+  const series: BurndownPoint[] = samples.map((t) => {
-+    const burned = closeEvents
-       .filter((c) => c.at <= t)
-       .reduce((s, c) => s + c.points, 0);
-     const remaining = Math.max(0, totalPoints - burned);
--    const ideal =
--      totalPoints - (totalPoints * idx) / Math.max(1, buckets.length - 1);
-     return {
-       date: new Date(t).toISOString(),
-       remaining,
--      ideal: Math.round(ideal * 10) / 10,
-+      ideal: idealAt(t),
-       isFuture: t > now,
-     };
-   });
-   return { series, totalPoints };
- }
+  if (rows.length === 0)
+    return { series: [] as BurndownPoint[], totalPoints: 0 };
+  const totalPoints = rows.reduce((s, i) => s + i.storyPoints, 0);
+  const earliestCreatedMs = rows.reduce(
+    (min, r) => Math.min(min, r.createdAt.getTime()),
+    rows[0]!.createdAt.getTime(),
+  );
+  const { buckets, now } = partyTimeline(earliestCreatedMs);
+  const partyStart = buckets[0]!;
+  const partyEnd = buckets[buckets.length - 1]!;
+  const partySpan = Math.max(1, partyEnd - partyStart);
+
+  const idealAt = (t: number) => {
+    const clamped = Math.min(Math.max(t, partyStart), partyEnd);
+    const frac = (clamped - partyStart) / partySpan;
+    return Math.round(totalPoints * (1 - frac) * 10) / 10;
+  };
+
+  const closeEvents = rows
+    .filter((i) => i.status === "done" && i.completedAt)
+    .map((i) => ({
+      at: i.completedAt!.getTime(),
+      points: i.storyPoints,
+    }))
+    .sort((a, b) => a.at - b.at);
+
+  const sampleSet = new Set<number>([partyStart]);
+  for (const c of closeEvents) {
+    if (c.at >= partyStart && c.at <= partyEnd) sampleSet.add(c.at);
+  }
+  for (const b of buckets) {
+    if (b <= now) sampleSet.add(b);
+  }
+  if (now >= partyStart && now <= partyEnd) sampleSet.add(now);
+
+  const samples = Array.from(sampleSet).sort((a, b) => a - b);
+
+  const series: BurndownPoint[] = samples.map((t) => {
+    const burned = closeEvents
+      .filter((c) => c.at <= t)
+      .reduce((s, c) => s + c.points, 0);
+    const remaining = Math.max(0, totalPoints - burned);
+    return {
+      date: new Date(t).toISOString(),
+      remaining,
+      ideal: idealAt(t),
+      isFuture: t > now,
+    };
+  });
+  return { series, totalPoints };
+}
+
 
 
 export const getBurndown = createServerFn({ method: "GET" })
