@@ -49,7 +49,11 @@ export function BurndownChart({
 
   // Convert each point's ISO date to a numeric timestamp so we can use a
   // continuous time scale and pin the X axis to the full party window.
-  const data = series.map((p) => ({ ...p, t: new Date(p.date).getTime() }));
+  const data = series.map((p) => ({
+  ...p,
+  t: new Date(p.date).getTime(),
+  remainingActual: p.isFuture ? null : p.remaining,
+}));
 
   const xDomain: [number, number] | undefined =
     partyStart != null && partyEnd != null ? [partyStart, partyEnd] : undefined;
