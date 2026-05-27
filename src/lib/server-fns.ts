@@ -455,17 +455,20 @@ function partyTimeline(referenceMs: number) {
 }
 
  function seriesFromIssues(rows: (typeof issueTable.$inferSelect)[]) {
-  if (rows.length === 0)
-    return { series: [] as BurndownPoint[], totalPoints: 0 };
-  const totalPoints = rows.reduce((s, i) => s + i.storyPoints, 0);
-
-  // Anchor the party window to TODAY (Oslo), not to the earliest issue.
-  // Otherwise old test issues drag the chart window into a past day and the
-  // line never reflects current closes.
   const { buckets, now } = partyTimeline(Date.now());
   const partyStart = buckets[0]!;
   const partyEnd = buckets[buckets.length - 1]!;
   const partySpan = Math.max(1, partyEnd - partyStart);
+
+  if (rows.length === 0)
+    return {
+      series: [] as BurndownPoint[],
+      totalPoints: 0,
+      partyStart,
+      partyEnd,
+    };
+
+  const totalPoints = rows.reduce((s, i) => s + i.storyPoints, 0);
 
   const idealAt = (t: number) => {
     const clamped = Math.min(Math.max(t, partyStart), partyEnd);
@@ -481,8 +484,6 @@ function partyTimeline(referenceMs: number) {
     }))
     .sort((a, b) => a.at - b.at);
 
-  // Close events from before the party window still count as "burned" — they
-  // shouldn't be plotted before partyStart, but their points are gone.
   const burnedBeforeStart = closeEvents
     .filter((c) => c.at < partyStart)
     .reduce((s, c) => s + c.points, 0);
@@ -513,7 +514,8 @@ function partyTimeline(referenceMs: number) {
       isFuture: t > now,
     };
   });
-  return { series, totalPoints };
+
+  return { series, totalPoints, partyStart, partyEnd };
 }
 
 export const getBurndown = createServerFn({ method: "GET" })
