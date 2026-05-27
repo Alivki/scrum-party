@@ -283,6 +283,19 @@
     min-height: 60px;
   }
 
+  /* Felles overview: fill available height instead of fixed kanban size. */
+  .felles-board {
+    height: 100%;
+    min-height: 0;
+  }
+  .felles-board .kanban-scroll {
+    height: 100%;
+  }
+  .felles-board .kanban {
+    height: 100%;
+    max-height: none;
+  }
+
   /* Floor-line form field */
   .field {
     width: 100%;

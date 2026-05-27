@@ -257,9 +257,13 @@ export const deleteIssue = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
     const u = await requireUser();
-    await db
-      .delete(issueTable)
-      .where(and(eq(issueTable.id, data.id), eq(issueTable.userId, u.id)));
+    if (u.role === "admin") {
+      await db.delete(issueTable).where(eq(issueTable.id, data.id));
+    } else {
+      await db
+        .delete(issueTable)
+        .where(and(eq(issueTable.id, data.id), eq(issueTable.userId, u.id)));
+    }
     return { ok: true };
   });
 
@@ -347,28 +351,44 @@ export const getLeaderboard = createServerFn({ method: "GET" }).handler(
   },
 );
 
-function bucketTimeline(startMs: number) {
-  const HOUR_MS = 60 * 60 * 1000;
-  const now = Date.now();
-  const startBucket = Math.floor(startMs / HOUR_MS) * HOUR_MS;
-  const endBucket = Math.max(
-    Math.ceil(now / HOUR_MS) * HOUR_MS,
-    startBucket + 6 * HOUR_MS,
-  );
+const PARTY_START_HOUR = 18;
+const PARTY_END_HOUR = 23;
+const BUCKET_MS = 15 * 60 * 1000;
+
+function partyTimeline(referenceMs: number) {
+  const d = new Date(referenceMs);
+  const start = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    PARTY_START_HOUR,
+    0,
+    0,
+    0,
+  ).getTime();
+  const end = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    PARTY_END_HOUR,
+    0,
+    0,
+    0,
+  ).getTime();
   const buckets: number[] = [];
-  for (let t = startBucket; t <= endBucket; t += HOUR_MS) buckets.push(t);
-  return { buckets, now };
+  for (let t = start; t <= end; t += BUCKET_MS) buckets.push(t);
+  return { buckets, now: Date.now() };
 }
 
 function seriesFromIssues(rows: (typeof issueTable.$inferSelect)[]) {
   if (rows.length === 0)
     return { series: [] as BurndownPoint[], totalPoints: 0 };
   const totalPoints = rows.reduce((s, i) => s + i.storyPoints, 0);
-  const sorted = [...rows].sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+  const earliestCreatedMs = rows.reduce(
+    (min, r) => Math.min(min, r.createdAt.getTime()),
+    rows[0]!.createdAt.getTime(),
   );
-  const startMs = sorted[0]!.createdAt.getTime();
-  const { buckets, now } = bucketTimeline(startMs);
+  const { buckets, now } = partyTimeline(earliestCreatedMs);
 
   const closedAt = rows
     .filter((i) => i.status === "done" && i.completedAt)

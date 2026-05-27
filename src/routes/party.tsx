@@ -87,7 +87,7 @@ function PartyPage() {
 
   return (
     <main className="min-h-screen pb-16">
-      <TopStrip participants={totalUsers} />
+      <TopStrip participants={totalUsers} showFelles />
 
       <ScoreboardMasthead
         user={me.data}
@@ -160,6 +160,7 @@ function PartyPage() {
           <KanbanBoard
             issues={issues.data ?? []}
             currentUserId={me.data.id}
+            isAdmin={isAdmin}
             showOwner
           />
         </div>

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { ArrowLeft, LogOut, Maximize2 } from "lucide-react";
 import * as React from "react";
 import { Button } from "~/components/ui/button";
 import { useLogout } from "~/lib/session";
@@ -9,9 +9,15 @@ interface TopStripProps {
   participants?: number;
   back?: { label: string; to: string };
   showLogout?: boolean;
+  showFelles?: boolean;
 }
 
-export function TopStrip({ participants, back, showLogout = true }: TopStripProps) {
+export function TopStrip({
+  participants,
+  back,
+  showLogout = true,
+  showFelles = false,
+}: TopStripProps) {
   const navigate = useNavigate();
   const logout = useLogout();
   return (
@@ -30,6 +36,16 @@ export function TopStrip({ participants, back, showLogout = true }: TopStripProp
         )}
       </div>
       <div className="caption-3 num flex items-center gap-3">
+        {showFelles && (
+          <Link
+            to="/felles"
+            aria-label="Felles fullskjerm"
+            className="hidden sm:inline-flex items-center gap-1.5 btn btn-quiet text-ink-2 hover:text-ink !py-0"
+          >
+            <Maximize2 className="h-3.5 w-3.5" strokeWidth={2} />
+            <span>felles</span>
+          </Link>
+        )}
         {typeof participants === "number" && (
           <span className="hidden sm:inline">
             <span className="num">{participants}</span> deltakere

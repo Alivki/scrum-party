@@ -22,7 +22,7 @@ const config = {
 interface Props {
   series: BurndownPoint[];
   totalPoints: number;
-  height?: number;
+  height?: number | string;
 }
 
 export function BurndownChart({ series, totalPoints, height = 280 }: Props) {

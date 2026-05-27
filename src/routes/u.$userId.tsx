@@ -182,6 +182,7 @@ function UserPage() {
           <KanbanBoard
             issues={issues.data ?? []}
             currentUserId={isMe ? me.data.id : null}
+            isAdmin={me.data.role === "admin"}
             onEdit={isMe ? (i) => setEditing(i) : undefined}
           />
         </div>

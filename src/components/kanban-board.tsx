@@ -42,6 +42,8 @@ interface Props {
   currentUserId?: string | null;
   /** When true, show the owner avatar/name on each card (shared boards). */
   showOwner?: boolean;
+  /** When true, viewer can delete any issue (not just their own). */
+  isAdmin?: boolean;
   onEdit?: (issue: Issue) => void;
 }
 
@@ -62,6 +64,7 @@ export function KanbanBoard({
   issues,
   currentUserId = null,
   showOwner = false,
+  isAdmin = false,
   onEdit,
 }: Props) {
   const qc = useQueryClient();
@@ -213,6 +216,7 @@ export function KanbanBoard({
               issues={byStatus[status]}
               currentUserId={currentUserId}
               showOwner={showOwner}
+              isAdmin={isAdmin}
               onEdit={onEdit}
               onRequestDelete={(issue) => setPendingDelete(issue)}
               onMove={moveTo}
@@ -248,6 +252,7 @@ export function KanbanBoard({
             issue={activeIssue}
             currentUserId={currentUserId}
             showOwner={showOwner}
+            isAdmin={isAdmin}
             dragging
           />
         ) : null}
@@ -275,6 +280,7 @@ function Column({
   issues,
   currentUserId,
   showOwner,
+  isAdmin,
   onEdit,
   onRequestDelete,
   onMove,
@@ -283,6 +289,7 @@ function Column({
   issues: AnyIssue[];
   currentUserId: string | null;
   showOwner: boolean;
+  isAdmin: boolean;
   onEdit?: (i: Issue) => void;
   onRequestDelete: (issue: AnyIssue) => void;
   onMove: (issue: AnyIssue, status: IssueStatus) => void;
@@ -315,6 +322,7 @@ function Column({
         issues={issues}
         currentUserId={currentUserId}
         showOwner={showOwner}
+        isAdmin={isAdmin}
         onEdit={onEdit}
         onRequestDelete={onRequestDelete}
         onMove={onMove}
@@ -328,6 +336,7 @@ function ColumnBody({
   issues,
   currentUserId,
   showOwner,
+  isAdmin,
   onEdit,
   onRequestDelete,
   onMove,
@@ -336,6 +345,7 @@ function ColumnBody({
   issues: AnyIssue[];
   currentUserId: string | null;
   showOwner: boolean;
+  isAdmin: boolean;
   onEdit?: (i: Issue) => void;
   onRequestDelete: (issue: AnyIssue) => void;
   onMove: (issue: AnyIssue, status: IssueStatus) => void;
@@ -363,6 +373,7 @@ function ColumnBody({
                 issue={issue}
                 currentUserId={currentUserId}
                 showOwner={showOwner}
+                isAdmin={isAdmin}
                 onEdit={onEdit}
                 onRequestDelete={onRequestDelete}
                 onMove={onMove}
@@ -380,6 +391,7 @@ function SortableIssue({
   issue,
   currentUserId,
   showOwner,
+  isAdmin,
   onEdit,
   onRequestDelete,
   onMove,
@@ -387,6 +399,7 @@ function SortableIssue({
   issue: AnyIssue;
   currentUserId: string | null;
   showOwner: boolean;
+  isAdmin: boolean;
   onEdit?: (i: Issue) => void;
   onRequestDelete: (issue: AnyIssue) => void;
   onMove: (issue: AnyIssue, status: IssueStatus) => void;
@@ -409,8 +422,9 @@ function SortableIssue({
         issue={issue}
         currentUserId={currentUserId}
         showOwner={showOwner}
+        isAdmin={isAdmin}
         onEdit={isOwn ? onEdit : undefined}
-        onRequestDelete={isOwn ? onRequestDelete : undefined}
+        onRequestDelete={isOwn || isAdmin ? onRequestDelete : undefined}
         onMove={isOwn ? onMove : undefined}
       />
     </div>
@@ -421,6 +435,7 @@ function IssueCard({
   issue,
   currentUserId,
   showOwner,
+  isAdmin = false,
   dragging,
   onEdit,
   onRequestDelete,
@@ -429,6 +444,7 @@ function IssueCard({
   issue: AnyIssue;
   currentUserId: string | null;
   showOwner: boolean;
+  isAdmin?: boolean;
   dragging?: boolean;
   onEdit?: (i: Issue) => void;
   onRequestDelete?: (issue: AnyIssue) => void;
@@ -437,6 +453,8 @@ function IssueCard({
   const isDone = issue.status === "done";
   const isBlocked = issue.status === "blocked";
   const isOwn = currentUserId === issue.userId;
+  const canEdit = isOwn && !!onEdit;
+  const canDelete = (isOwn || isAdmin) && !!onRequestDelete;
   const owner: User | null =
     showOwner && "user" in issue ? (issue as IssueWithUser).user : null;
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
@@ -513,7 +531,7 @@ function IssueCard({
         <span className="num">{issue.alcoholPercent}</span>%
       </div>
 
-      {(owner || isBlocked || (isOwn && (onEdit || onRequestDelete))) && (
+      {(owner || isBlocked || canEdit || canDelete) && (
         <div className="mt-2 pt-2 border-t border-ink-3/30 flex items-center justify-between gap-2">
           {owner ? (
             <Link
@@ -541,9 +559,9 @@ function IssueCard({
             {isBlocked && (
               <span className="caption-3 text-cobalt text-[10px]">venter</span>
             )}
-            {isOwn && (onEdit || onRequestDelete) && (
+            {(canEdit || canDelete) && (
               <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                {onEdit && (
+                {canEdit && onEdit && (
                   <button
                     type="button"
                     aria-label="Endre"
@@ -557,7 +575,7 @@ function IssueCard({
                     <Pencil className="h-3 w-3" strokeWidth={1.75} />
                   </button>
                 )}
-                {onRequestDelete && (
+                {canDelete && onRequestDelete && (
                   <button
                     type="button"
                     aria-label="Slett"
