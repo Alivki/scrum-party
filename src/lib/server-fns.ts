@@ -378,28 +378,77 @@ export const getLeaderboard = createServerFn({ method: "GET" }).handler(
 
 const PARTY_START_HOUR = 18;
 const PARTY_END_HOUR = 23;
+const PARTY_TIME_ZONE = "Europe/Oslo";
 const BUCKET_MS = 15 * 60 * 1000;
 
+function datePartsInTimeZone(ms: number, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(ms));
+  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return {
+    year: Number(lookup.year),
+    month: Number(lookup.month),
+    day: Number(lookup.day),
+  };
+}
+
+function timeZoneOffsetMs(ms: number, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(ms));
+  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const asUtc = Date.UTC(
+    Number(lookup.year),
+    Number(lookup.month) - 1,
+    Number(lookup.day),
+    Number(lookup.hour),
+    Number(lookup.minute),
+    Number(lookup.second),
+  );
+  return asUtc - ms;
+}
+
+function zonedTimeToUtcMs(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  timeZone: string,
+) {
+  const utcGuess = Date.UTC(year, month - 1, day, hour, 0, 0, 0);
+  return utcGuess - timeZoneOffsetMs(utcGuess, timeZone);
+}
+
 function partyTimeline(referenceMs: number) {
-  const d = new Date(referenceMs);
-  const start = new Date(
-    d.getFullYear(),
-    d.getMonth(),
-    d.getDate(),
+  const { year, month, day } = datePartsInTimeZone(
+    referenceMs,
+    PARTY_TIME_ZONE,
+  );
+  const start = zonedTimeToUtcMs(
+    year,
+    month,
+    day,
     PARTY_START_HOUR,
-    0,
-    0,
-    0,
-  ).getTime();
-  const end = new Date(
-    d.getFullYear(),
-    d.getMonth(),
-    d.getDate(),
+    PARTY_TIME_ZONE,
+  );
+  const end = zonedTimeToUtcMs(
+    year,
+    month,
+    day,
     PARTY_END_HOUR,
-    0,
-    0,
-    0,
-  ).getTime();
+    PARTY_TIME_ZONE,
+  );
   const buckets: number[] = [];
   for (let t = start; t <= end; t += BUCKET_MS) buckets.push(t);
   return { buckets, now: Date.now() };
