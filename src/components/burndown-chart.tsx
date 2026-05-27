@@ -128,7 +128,8 @@ export function BurndownChart({
           />
           <Area
             type="monotone"
-            dataKey="remaining"
+            dataKey="remainingActual"
+             connectNulls={false}
             stroke="var(--hot)"
             strokeWidth={2.5}
             fill="url(#burndown-fill)"
